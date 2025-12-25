@@ -1,4 +1,4 @@
-# GhostStego - Công Cụ Ẩn Dữ Liệu PDF (Output Intents Injection)
+# GhostStego - Công cụ ẩn dữ liệu vào file PDF (Output Intents Injection)
 
 **GhostStego** là công cụ Steganography chuyên dụng cho định dạng PDF. Thay vì sử dụng các phương pháp truyền thống dễ bị phát hiện (như nối đuôi file), GhostStego sử dụng kỹ thuật **Output Intents Injection** để giấu dữ liệu vào cấu trúc cấu hình in ấn của file PDF.
 
@@ -108,7 +108,30 @@ Khi chương trình hỏi `Nhập mật khẩu:`, hãy nhập trực tiếp mậ
 
 ---
 
-## 🧠 Cơ chế kỹ thuật
+## Cơ chế kỹ thuật
 
 *   **Injection Strategy:** Tạo một Stream Object mới chứa dữ liệu đã mã hóa, gán Type là `/OutputIntent` và gắn vào `Root/OutputIntents`.
 *   **Structure Preservation:** Sử dụng chế độ `pikepdf.ObjectStreamMode.disable` khi lưu để bảo toàn cấu trúc object gốc, giúp file tránh bị các phần mềm diệt virus nghi ngờ do nén quá mức.
+
+---
+
+## Công cụ hỗ trợ kiểm thử
+
+Để thuận tiện cho việc đánh giá, dự án cung cấp sẵn script tạo file PDF mẫu (Clean PDF) sử dụng thư viện `reportlab`.
+
+**File:** `test/create_pdf.py`
+
+**Chức năng:** Tạo ra file `Sample.pdf` chuẩn A4 chứa văn bản mẫu để làm dữ liệu đầu vào (Cover file) cho quá trình giấu tin.
+
+**Cách sử dụng:**
+
+1. Đảm bảo đã cài đặt đầy đủ thư viện (bao gồm `reportlab`):
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. Chạy script tạo file:
+   ```bash
+   python test/create_pdf.py
+   ```
+   *(File `Sample.pdf` sẽ được tạo ra ngay tại thư mục hiện tại)*
