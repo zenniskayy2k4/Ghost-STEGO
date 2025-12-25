@@ -12,11 +12,11 @@ def main():
     
     embed_p = subparsers.add_parser('embed', help="Chế độ dòng lệnh: Ẩn file")
     embed_p.add_argument('pdf_in')
-    embed_p.add_argument('payload')
+    embed_p.add_argument('payload', nargs='+', help="Danh sách file hoặc folder cần ẩn")
     embed_p.add_argument('pdf_out')
     embed_p.add_argument('-p', '--password', default=None)
 
-    extract_p = subparsers.add_parser('extract', help="Chế độ dòng lệnh: Trích xuất")
+    extract_p = subparsers.add_parser('extract', help="Chế độ dòng lệnh: Trích xuất file ẩn")
     extract_p.add_argument('pdf_in')
     extract_p.add_argument('-o', '--outdir', default='.')
     extract_p.add_argument('-p', '--password', default=None)
@@ -28,14 +28,30 @@ def main():
     if args.cmd:
         try:
             if args.cmd == 'embed':
-                GhostCore.embed(args.pdf_in, args.payload, args.pdf_out, args.password)
+                # 1. Kiểm tra File PDF gốc có tồn tại không
+                if not os.path.exists(args.pdf_in):
+                    print(f"Error: File PDF gốc không tồn tại: '{args.pdf_in}'")
+                    sys.exit(1)
+
+                # 2. Kiểm tra danh sách Payload có tồn tại không
+                clean_payloads = []
+                for path in args.payload:
+
+                    path = path.strip('"').strip("'")
+                    if not os.path.exists(path):
+                        print(f"Error: Không tìm thấy file/folder: '{path}'")
+                        sys.exit(1)
+                    clean_payloads.append(path)
+
+                # 3. Thực hiện Embed
+                GhostCore.embed(args.pdf_in, clean_payloads, args.pdf_out, args.password)
                 abs_path = os.path.abspath(args.pdf_out)
                 print(f"Success: {abs_path}")
 
             elif args.cmd == 'extract':
                 blob = GhostCore.extract_search(args.pdf_in)
                 if not blob:
-                    print("Error: No data found")
+                    print("Error: Không tìm thấy dữ liệu ẩn trong file này!")
                     sys.exit(1)
                 
                 # Logic xử lý pass cho CLI

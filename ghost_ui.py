@@ -42,28 +42,52 @@ class GhostUI:
             console.print("[red]File không tồn tại![/red]")
             pdf_in = Prompt.ask("Đường dẫn PDF gốc")
             
-        file_in = Prompt.ask("File hoặc Thư mục cần ẩn")
-        while not os.path.exists(file_in):
-            console.print("[red]Đường dẫn không tồn tại![/red]")
-            file_in = Prompt.ask("File hoặc Thư mục cần ẩn")
+        input_list = []
+        console.print("[yellow]Nhập lần lượt các file/folder cần giấu. (Nhấn Enter để kết thúc)[/yellow]")
+        
+        while True:
+            # Nếu danh sách đã có file, prompt sẽ khác chút
+            prompt_text = f"Nhập đường dẫn thứ {len(input_list) + 1}"
+            
+            path = Prompt.ask(prompt_text, default="")
+            
+            if not path:
+                if len(input_list) == 0:
+                    console.print("[red]Bạn phải nhập ít nhất 1 file/folder![/red]")
+                    continue
+                else:
+                    break
+            
+            # Xử lý xóa ngoặc kép nếu user copy path dạng "C:\My Documents"
+            path = path.strip('"').strip("'")
+            
+            if os.path.exists(path):
+                input_list.append(path)
+                console.print(f"[green]   + Đã thêm: {os.path.basename(path)}[/green]")
+            else:
+                console.print("[red]   ! Đường dẫn không tồn tại[/red]")
             
         pdf_out = Prompt.ask("Tên file PDF đầu ra", default="output.pdf")
         
         password = None
         if Confirm.ask("Bạn có muốn đặt mật khẩu không?"):
             password = Prompt.ask("Nhập mật khẩu", password=True)
-        # Gọi Core để xử lý
+
         try:
             with console.status("[bold green]Đang xử lý..."):
-                orig_size = GhostCore.embed(pdf_in, file_in, pdf_out, password)
+                orig_size = GhostCore.embed(pdf_in, input_list, pdf_out, password)
             
-            console.print(f"\n[bold green]✔ Thành công![/bold green]")
+            console.print(f"\n[bold green]Thành công![/bold green]")
             table = Table(box=box.SIMPLE)
             table.add_column("Thông tin", style="cyan")
             table.add_column("Giá trị", style="yellow")
-            table.add_row("Input", pdf_in)
-            table.add_row("Payload", file_in)
-            table.add_row("Output", pdf_out)
+            table.add_row("Input PDF", os.path.basename(pdf_in))
+            if len(input_list) == 1:
+                display_payload = os.path.basename(input_list[0])
+            else:
+                display_payload = f"{len(input_list)} items (Bundle)"
+            table.add_row("Payload", display_payload)
+            table.add_row("Output PDF", pdf_out)
             table.add_row("Size ẩn", f"{orig_size} bytes")
             table.add_row("Bảo mật", "AES-256" if password else "None")
             console.print(table)

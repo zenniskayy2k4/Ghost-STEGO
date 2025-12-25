@@ -53,13 +53,13 @@ Chương trình sẽ hiện Menu để bạn chọn:
 
 ### Cách 2: Chạy dòng lệnh (Automation)
 
-**1. Ẩn dữ liệu (File hoặc Folder):**
+**1. Ẩn dữ liệu (Hỗ trợ nhiều file/folder):**
 
 **Cú pháp:**
 ```bash
-python main.py embed <File_PDF_Gốc> <File_Cần_Giấu> <File_PDF_Đầu_Ra> -p "<Mật_Khẩu>"
+python main.py embed <PDF_Gốc> <Input_1> [Input_2 ...] <PDF_Output> -p "<Mật_Khẩu>"
 ```
-*(Nếu input là Folder, tool sẽ tự động nén Zip)*
+*(Nếu input là Folder hoặc nhiều file/folder, tool sẽ tự động nén Zip trước khi giấu)*
 
 **Ví dụ:**
 Bạn muốn giấu file `bi_mat.txt` vào file `tai_lieu.pdf`, tạo ra file `tai_lieu_secure.pdf` với mật khẩu là `123456`:
@@ -68,12 +68,20 @@ Bạn muốn giấu file `bi_mat.txt` vào file `tai_lieu.pdf`, tạo ra file `t
 python main.py embed tai_lieu.pdf bi_mat.txt tai_lieu_secure.pdf -p "123456"
 ```
 
+**Ví dụ:**
+Giấu một file ảnh, một file text và cả một thư mục code vào file `baocao.pdf`:
+
+```bash
+python main.py embed baocao.pdf hinh.png secret.txt ./SourceCode baocao_stego.pdf -p "123456"
+```
+*(Tool sẽ tự động gom 3 thành phần trên thành 1 file nén và nhúng vào PDF)*
+
 **2. Trích xuất dữ liệu:**
 
 **Cú pháp:**
 ```bash
 # -o: (Optional) Thư mục để lưu file giải nén (Mặc định là thư mục hiện tại)
-python main.py extract <File_PDF_Stego> -o <Thư_Mục_Output> -p "<Mật_Khẩu>"
+python main.py extract <File_PDF_Stego> -o <Thư_mục_Output> -p <Mật_Khẩu>
 ```
 
 **Ví dụ:**
@@ -82,6 +90,22 @@ Lấy dữ liệu từ `tai_lieu_secure.pdf` lưu vào thư mục `ket_qua`:
 ```bash
 python main.py extract tai_lieu_secure.pdf -o ./ket_qua -p "123456"
 ```
+*(Nếu dữ liệu là bị tool nén trước khi giấu, tool sẽ tự động giải nén ra nguyên trạng)*
+
+---
+
+## Lưu ý quan trọng về Mật khẩu
+
+### 1. Khi chạy chế độ Dòng lệnh
+Nếu mật khẩu của bạn có chứa **khoảng trắng (dấu cách)** hoặc **các ký tự đặc biệt** (ví dụ: `!`, `@`, `$`, `&`), **BẮT BUỘC** phải đặt mật khẩu trong dấu ngoặc kép `""`.
+
+*   ❌ **Sai:** `python main.py ... -p mat khau 123` (Chương trình sẽ hiểu 'khau' và '123' là tên file)
+*   ✅ **Đúng:** `python main.py ... -p "mat khau 123"`
+*   ✅ **Đúng:** `python main.py ... -p "P@ssw0rd!"`
+
+### 2. Khi chạy chế độ Tương tác (Interactive Menu)
+Khi chương trình hỏi `Nhập mật khẩu:`, hãy nhập trực tiếp mật khẩu mà **KHÔNG** cần thêm dấu ngoặc kép (trừ khi mật khẩu của bạn thực sự chứa dấu ngoặc kép). Chương trình sẽ đọc chính xác những gì đã gõ.
+
 ---
 
 ## 🧠 Cơ chế kỹ thuật

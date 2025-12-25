@@ -4,6 +4,7 @@ import struct
 import pikepdf
 import shutil
 import tempfile
+import zipfile
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 from Crypto.Protocol.KDF import scrypt
@@ -17,38 +18,70 @@ class GhostCore:
         return scrypt(password, salt, 32, N=2**14, r=8, p=1)
 
     @staticmethod
-    def process_input(input_path):
+    def process_input(input_paths):
         """
         Nếu là File: Trả về đường dẫn file và False (không phải file tạm).
         Nếu là Folder: Nén lại thành Zip, trả về đường dẫn Zip và True (là file tạm).
+        Xử lý danh sách đầu vào (List of paths).
+        - Nếu chỉ có 1 file: Trả về file đó.
+        - Nếu có nhiều file HOẶC có folder: Gom tất cả vào 1 file Zip tạm.
         """
-        if os.path.isfile(input_path):
-            return input_path, False
-        
-        elif os.path.isdir(input_path):
-            # Tạo file zip tạm thời
-            temp_dir = tempfile.gettempdir()
-            folder_name = os.path.basename(os.path.normpath(input_path))
-            base_name = os.path.join(temp_dir, folder_name)
-            
-            # Tạo zip: base_name + .zip
-            zip_path = shutil.make_archive(base_name, 'zip', input_path)
-            return zip_path, True
-        else:
-            raise FileNotFoundError(f"Đường dẫn không tồn tại: {input_path}")
-    
-    @staticmethod
-    def prepare_payload(input_path, password=None):
-        """Chuẩn bị blob dữ liệu để nhúng"""
-        # 1. Xử lý file/folder
-        actual_file, is_temp = GhostCore.process_input(input_path)
+        if isinstance(input_paths, str):
+            input_paths = [input_paths]
+
+        # Trường hợp 1: Chỉ có 1 đầu vào và đó là File (không phải Folder)
+        if len(input_paths) == 1 and os.path.isfile(input_paths[0]):
+            return input_paths[0], False
+
+        # Trường hợp 2: Có nhiều file hoặc có Folder -> Nén tất cả vào Zip
+        temp_zip = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
+        temp_zip.close()
         
         try:
-            filename = os.path.basename(actual_file)
+            with zipfile.ZipFile(temp_zip.name, 'w', zipfile.ZIP_DEFLATED) as zf:
+                for path in input_paths:
+                    path = path.strip('"').strip("'")
+                    if not os.path.exists(path):
+                        continue
+                    
+                    if os.path.isfile(path):
+                        # Nếu là file: Thêm vào gốc của Zip
+                        zf.write(path, arcname=os.path.basename(path))
+                    
+                    elif os.path.isdir(path):
+                        # Nếu là folder: Duyệt đệ quy để giữ cấu trúc thư mục
+                        for root, _, files in os.walk(path):
+                            for file in files:
+                                abs_file = os.path.join(root, file)
+                                # Tính đường dẫn tương đối để lưu trong zip
+                                rel_path = os.path.relpath(abs_file, os.path.dirname(path))
+                                zf.write(abs_file, arcname=rel_path)
+            
+            return temp_zip.name, True
+            
+        except Exception as e:
+            if os.path.exists(temp_zip.name):
+                os.remove(temp_zip.name)
+            raise e
+    
+    @staticmethod
+    def prepare_payload(input_paths, password=None):
+        """Chuẩn bị blob dữ liệu để nhúng"""
+        # Xử lý đầu vào (Gom nhiều file/folder)
+        actual_file, is_temp = GhostCore.process_input(input_paths)
+        
+        try:
+            # Nếu là file zip gom nhiều file, ta đặt tên chung là "Bundle_Archive.zip" 
+            # hoặc lấy tên file đầu tiên nếu chỉ có 1 file.
+            if is_temp:
+                filename = "Embedded_Bundle.zip" # Tên mặc định khi giải nén
+            else:
+                filename = os.path.basename(actual_file)
+
             with open(actual_file, 'rb') as f:
                 file_data = f.read()
             
-            # Nén lần 2 (Zlib) - Dù Zip đã nén nhưng Zlib giúp đóng gói gọn hơn cho cấu trúc binary
+            # Nén lần 2 (Zlib) - Tối ưu kích thước
             compressed_payload = zlib.compress(file_data, level=9)
             
             # Metadata
@@ -72,7 +105,10 @@ class GhostCore:
         finally:
             # Dọn dẹp file zip tạm nếu có
             if is_temp and os.path.exists(actual_file):
-                os.remove(actual_file)
+                try:
+                    os.remove(actual_file)
+                except:
+                    pass
 
     @staticmethod
     def parse_payload(blob, password=None):
