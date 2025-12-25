@@ -39,7 +39,7 @@ pip install -r requirements.txt
 *   `rich`: Dùng để xây dựng giao diện CLI đẹp mắt.
 ---
 
-## 📖 Hướng Dẫn Sử Dụng
+## 📖 Hướng dẫn sử dụng
 
 ### Cách 1: Chạy giao diện tương tác (Khuyên dùng)
 Chỉ cần chạy file `main.py` không kèm tham số:

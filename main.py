@@ -1,11 +1,12 @@
 import argparse
 import sys
+import os
+import zipfile
 from ghost_ui import GhostUI
 from ghost_core import GhostCore
 
 def main():
     # Cấu hình tham số dòng lệnh (CLI arguments)
-    # Để nếu muốn chạy automation/script vẫn được
     parser = argparse.ArgumentParser(description="Ghost Stegography PDF Tool")
     subparsers = parser.add_subparsers(dest='cmd')
     
@@ -22,28 +23,50 @@ def main():
 
     args = parser.parse_args()
 
-    # LOGIC CHÍNH:
     # Nếu có tham số dòng lệnh -> Chạy 1 lần rồi thoát (cho script)
     # Nếu không có tham số -> Chạy giao diện vòng lặp (cho người dùng)
     if args.cmd:
         try:
             if args.cmd == 'embed':
                 GhostCore.embed(args.pdf_in, args.payload, args.pdf_out, args.password)
-                print(f"[CLI] Success: {args.pdf_out}")
+                abs_path = os.path.abspath(args.pdf_out)
+                print(f"Success: {abs_path}")
+
             elif args.cmd == 'extract':
                 blob = GhostCore.extract_search(args.pdf_in)
                 if not blob:
-                    print("[CLI] Error: No data found")
+                    print("Error: No data found")
                     sys.exit(1)
                 
-                # Logic xử lý pass đơn giản cho CLI
+                # Logic xử lý pass cho CLI
                 fname, data = GhostCore.parse_payload(blob, args.password)
-                import os
-                with open(os.path.join(args.outdir, fname), 'wb') as f:
+                if not os.path.exists(args.outdir):
+                    os.makedirs(args.outdir, exist_ok=True)
+                    
+                out_path = os.path.join(args.outdir, fname)
+                
+                # 1. Ghi file (có thể là zip hoặc file thường) xuống đĩa trước
+                with open(out_path, 'wb') as f:
                     f.write(data)
-                print(f"[CLI] Success: {fname}")
+
+                final_path = out_path
+                
+                if fname.lower().endswith('.zip'):
+                    try:
+                        extract_folder = os.path.splitext(out_path)[0]
+                        
+                        with zipfile.ZipFile(out_path, 'r') as zip_ref:
+                            zip_ref.extractall(extract_folder)
+                        
+                        os.remove(out_path)
+                        final_path = extract_folder
+                    except zipfile.BadZipFile:
+                        pass # Nếu lỗi zip thì giữ nguyên file gốc
+                    
+                print(f"Success: {os.path.abspath(final_path)}")
+
         except Exception as e:
-            print(f"[CLI] Error: {e}")
+            print(f"Error: {e}")
             sys.exit(1)
     else:
         app = GhostUI()

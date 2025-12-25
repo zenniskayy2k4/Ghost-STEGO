@@ -132,7 +132,7 @@ class GhostCore:
         intent_entry = pikepdf.Dictionary(
             Type="/OutputIntent",
             S="/GTS_PDFX",
-            OutputConditionIdentifier="Ghost_Profile_v2",
+            OutputConditionIdentifier="Ghost_Profile",
             DestOutputProfile=secret_stream
         )
         pdf.Root.OutputIntents.append(intent_entry)
@@ -146,7 +146,7 @@ class GhostCore:
         """Tìm blob dữ liệu trong PDF"""
         pdf = pikepdf.Pdf.open(pdf_in)
         
-        # 1. Quét OutputIntents (Nhanh)
+        # Quét OutputIntents (Nhanh)
         if "/OutputIntents" in pdf.Root:
             for intent in pdf.Root.OutputIntents:
                 if "/DestOutputProfile" in intent:
@@ -154,7 +154,7 @@ class GhostCore:
                     if raw.startswith(MAGIC_TAG):
                         return raw
         
-        # 2. Quét sâu (Chậm)
+        # Quét sâu (Chậm)
         for obj in pdf.objects:
             if isinstance(obj, pikepdf.Stream):
                 raw = obj.read_bytes()

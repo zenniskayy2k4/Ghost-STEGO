@@ -1,5 +1,6 @@
 import os
 import sys
+import zipfile
 from rich.console import Console
 from rich.prompt import Prompt, Confirm
 from rich.panel import Panel
@@ -18,7 +19,7 @@ BANNER = """
 ░▒▓███▀▒░▓█▒░██▓░ ████▓▒░▒██████▒▒  ▒██▒ ░ 
  ░▒   ▒  ▒ ░░▒░▒░ ▒░▒░▒░ ▒ ▒▓▒ ▒ ░  ▒ ░░   
 [/bold cyan]
-[bold white on blue] GHOST STEGO - LOOP EDITION [/bold white on blue]
+[bold white on blue] GHOST STEGO [/bold white on blue]
 """
 
 class GhostUI:
@@ -36,22 +37,21 @@ class GhostUI:
     def handle_embed(self):
         console.print(Panel("[bold green]CHẾ ĐỘ ẨN DỮ LIỆU (EMBED)[/bold green]", border_style="green"))
         
-        pdf_in = Prompt.ask("📂 Đường dẫn PDF gốc")
+        pdf_in = Prompt.ask("Đường dẫn PDF gốc")
         while not os.path.exists(pdf_in):
             console.print("[red]File không tồn tại![/red]")
-            pdf_in = Prompt.ask("📂 Đường dẫn PDF gốc")
+            pdf_in = Prompt.ask("Đường dẫn PDF gốc")
             
-        file_in = Prompt.ask("📄 File hoặc Thư mục cần ẩn")
+        file_in = Prompt.ask("File hoặc Thư mục cần ẩn")
         while not os.path.exists(file_in):
             console.print("[red]Đường dẫn không tồn tại![/red]")
-            file_in = Prompt.ask("📄 File hoặc Thư mục cần ẩn")
+            file_in = Prompt.ask("File hoặc Thư mục cần ẩn")
             
-        pdf_out = Prompt.ask("💾 Tên file PDF đầu ra", default="output.pdf")
+        pdf_out = Prompt.ask("Tên file PDF đầu ra", default="output.pdf")
         
         password = None
-        if Confirm.ask("🔒 Bạn có muốn đặt mật khẩu không?"):
-            password = Prompt.ask("🔑 Nhập mật khẩu", password=True)
-
+        if Confirm.ask("Bạn có muốn đặt mật khẩu không?"):
+            password = Prompt.ask("Nhập mật khẩu", password=True)
         # Gọi Core để xử lý
         try:
             with console.status("[bold green]Đang xử lý..."):
@@ -69,18 +69,18 @@ class GhostUI:
             console.print(table)
             
         except Exception as e:
-            console.print(f"\n[bold red]✘ Lỗi: {e}[/bold red]")
+            console.print(f"\n[bold red]Lỗi: {e}[/bold red]")
 
     def handle_extract(self):
         console.print(Panel("[bold yellow]CHẾ ĐỘ TRÍCH XUẤT (EXTRACT)[/bold yellow]", border_style="yellow"))
         
-        pdf_in = Prompt.ask("📂 File PDF cần giải mã")
+        pdf_in = Prompt.ask("File PDF cần giải mã")
         while not os.path.exists(pdf_in):
             console.print("[red]File không tồn tại![/red]")
-            pdf_in = Prompt.ask("📂 File PDF cần giải mã")
+            pdf_in = Prompt.ask("File PDF cần giải mã")
 
-        out_dir = Prompt.ask("💾 Thư mục lưu file", default=".")
-        password = Prompt.ask("🔑 Mật khẩu (Enter nếu không có)", password=True)
+        out_dir = Prompt.ask("Thư mục lưu file", default=".")
+        password = Prompt.ask("Mật khẩu (Enter nếu không có)", password=True)
         if password == "": password = None
 
         try:
@@ -88,7 +88,7 @@ class GhostUI:
                 blob = GhostCore.extract_search(pdf_in)
                 
                 if not blob:
-                    console.print("[bold red]✘ Không tìm thấy dữ liệu ẩn trong file này![/bold red]")
+                    console.print("[bold red]Không tìm thấy dữ liệu ẩn trong file này![/bold red]")
                     return
 
                 # Nếu Core báo cần pass mà user chưa nhập -> Hỏi lại
@@ -96,18 +96,34 @@ class GhostUI:
                     fname, data = GhostCore.parse_payload(blob, password)
                 except PermissionError:
                     console.print("[bold red]! File này yêu cầu mật khẩu.[/bold red]")
-                    password = Prompt.ask("🔑 Mời nhập lại mật khẩu", password=True)
+                    password = Prompt.ask("Mời nhập lại mật khẩu", password=True)
                     fname, data = GhostCore.parse_payload(blob, password)
 
+            if not os.path.exists(out_dir):
+                os.makedirs(out_dir, exist_ok=True)
+                
             # Lưu file
             out_path = os.path.join(out_dir, fname)
             with open(out_path, 'wb') as f:
                 f.write(data)
+                
+            show_path = out_path
             
-            console.print(f"\n[bold green]✔ Trích xuất thành công: {out_path}[/bold green]")
+            if fname.lower().endswith('.zip'):
+                try:
+                    with console.status("[bold blue]Đang giải nén thư mục..."):
+                        extract_folder = os.path.splitext(out_path)[0]
+                        with zipfile.ZipFile(out_path, 'r') as zip_ref:
+                            zip_ref.extractall(extract_folder)
+                        os.remove(out_path) # Xóa zip
+                        show_path = extract_folder
+                except:
+                    pass
+            
+            console.print(f"\n[bold green]Trích xuất thành công: {os.path.abspath(show_path)}[/bold green]")
             
         except Exception as e:
-            console.print(f"\n[bold red]✘ Thất bại: {e}[/bold red]")
+            console.print(f"\n[bold red]Thất bại: {e}[/bold red]")
 
     def main_loop(self):
         while True:
@@ -116,7 +132,7 @@ class GhostUI:
             console.print("[2] Trích xuất (Extract)", style="bold yellow")
             console.print("[3] Thoát (Exit)", style="bold red")
             
-            choice = Prompt.ask("\n👉 Lựa chọn của bạn", choices=["1", "2", "3"], default="1")
+            choice = Prompt.ask("\nLựa chọn của bạn", choices=["1", "2", "3"], default="1")
             
             if choice == "3":
                 console.print("[bold cyan]Tạm biệt! Hẹn gặp lại.[/bold cyan]")

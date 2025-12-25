@@ -1,7 +1,7 @@
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
-c = canvas.Canvas("cover.pdf", pagesize=A4)
+c = canvas.Canvas("Sample.pdf", pagesize=A4)
 
 width, height = A4
 
