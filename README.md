@@ -119,6 +119,8 @@ Khi chương trình hỏi `Nhập mật khẩu:`, hãy nhập trực tiếp mậ
 
 Để thuận tiện cho việc đánh giá, dự án cung cấp sẵn script tạo file PDF mẫu (Clean PDF) sử dụng thư viện `reportlab`.
 
+**Bộ dữ liệu kiểm thử:** Để đảm bảo tính khách quan và thuận tiện cho việc tái lập kết quả (Reproducibility), em cung cấp kèm theo thư mục `test/` trong mã nguồn. Thư mục này chứa script `create_pdf.py` (sử dụng thư viện ReportLab) giúp sinh tự động các file PDF mẫu chuẩn cấu trúc để làm dữ liệu đầu vào cho các kịch bản kiểm thử và các file/folder được dùng để ẩn vào PDF.
+
 **File:** `test/create_pdf.py`
 
 **Chức năng:** Tạo ra file `Sample.pdf` chuẩn A4 chứa văn bản mẫu để làm dữ liệu đầu vào (Cover file) cho quá trình giấu tin.
